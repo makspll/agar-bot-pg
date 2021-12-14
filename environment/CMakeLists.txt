@@ -18,9 +18,8 @@ message(STATUS "${srcs}")
 
 add_executable(agario ${srcs} )
 set_target_properties(agario PROPERTIES 
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF)
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON)
 
 target_link_libraries(agario boost_program_options)
 target_link_libraries(agario sfml-graphics sfml-window sfml-system)
