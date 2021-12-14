@@ -80,7 +80,7 @@ class Vector : ISerializable{
 
     void clamp(T min, T max){
         for(int i = 0; i < L; i++){
-            vals[i] = std::min(std::max(vals[i],max),min);
+            vals[i] = std::max(std::min(vals[i],max),min);
         }
     }
     
