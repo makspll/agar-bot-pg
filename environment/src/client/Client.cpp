@@ -160,19 +160,23 @@ void Client::spin(){
     nearest_unit_br[1] = std::min(nearest_unit_br[1],(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
     std::cout << nearest_unit_tl << nearest_unit_br << '\n';
 
-    for(int y = nearest_unit_tl[1]; y <= nearest_unit_br[1];y = y + CLIENT_UNIT_LENGTH){
+    for(int y = nearest_unit_tl[1]; y <= nearest_unit_br[1];y += CLIENT_UNIT_LENGTH){
       // draw line down from current x
-      sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
-      line_down.setPosition(y,nearest_unit_tl[1]);
-      window->draw(line_down);
-    }
-
-    for(int x = nearest_unit_tl[1]; x <= nearest_unit_br[1];x = x + CLIENT_UNIT_LENGTH){
-      // draw line down from current x
+      std::cout << y << ',';
       sf::RectangleShape line_down(sf::Vector2f((nearest_unit_br[0] - nearest_unit_tl[0]),1));
-      line_down.setPosition(nearest_unit_tl[0],x);
+      line_down.setPosition(nearest_unit_tl[0],y);
       window->draw(line_down);
     }
+      std::cout << '\n';
+
+    for(int x = nearest_unit_tl[0]; x <= nearest_unit_br[0];x = x + CLIENT_UNIT_LENGTH){
+      // draw line down from current x
+      std::cout << x << ',';
+      sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
+      line_down.setPosition(x,nearest_unit_tl[1]);
+      window->draw(line_down);
+    }
+      std::cout << '\n';
 
 
     // for(Vec2Int i = nearest_unit_tl; (i[0] <= nearest_unit_br[0]) && (i[1] <= nearest_unit_br[1]);i = i + CLIENT_UNIT_LENGTH){
