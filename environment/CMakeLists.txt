@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_STANDARD 20) 
-set(CMAKE_CXX_STANDARD_REQUIRED ON) 
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CXX_STANDARD 20) 
+set(CXX_STANDARD_REQUIRED ON) 
+set(CXX_EXTENSIONS OFF)
 
 project(agar)
 
@@ -19,6 +19,5 @@ file(GLOB_RECURSE srcs
 message(STATUS "${srcs}")
 
 add_executable(agario ${srcs} )
-target_compile_features(agario PUBLIC cxx_std_20)
 target_link_libraries(agario boost_program_options)
 target_link_libraries(agario sfml-graphics sfml-window sfml-system)
