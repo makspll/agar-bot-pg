@@ -145,7 +145,51 @@ void Client::spin(){
     };
 
     window->clear();
+    
+    // draw game
+    
+    // draw grid
+    Vec2 top_left = Vec2(view.getCenter().x - view.getSize().x/2,view.getCenter().y - view.getSize().y/2) - (CLIENT_UNIT_LENGTH);
+    Vec2 bot_right = Vec2(view.getCenter().x + view.getSize().x/2,view.getCenter().y + view.getSize().y/2) + (CLIENT_UNIT_LENGTH);
+    Vec2Int nearest_unit_tl = ((Vec2Int)(top_left / CLIENT_UNIT_LENGTH)) * CLIENT_UNIT_LENGTH;
+    Vec2Int nearest_unit_br = ((Vec2Int)(bot_right / CLIENT_UNIT_LENGTH)) * CLIENT_UNIT_LENGTH;
+
+    nearest_unit_tl[0] = std::max(nearest_unit_tl[0],-(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
+    nearest_unit_tl[1] = std::max(nearest_unit_tl[1],-(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
+    nearest_unit_br[0] = std::min(nearest_unit_br[0],(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
+    nearest_unit_br[1] = std::min(nearest_unit_br[1],(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
+    std::cout << nearest_unit_tl << nearest_unit_br << '\n';
+
+    for(int y = nearest_unit_tl[1]; y <= nearest_unit_br[1];y = y + CLIENT_UNIT_LENGTH){
+      // draw line down from current x
+      sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
+      line_down.setPosition(y,nearest_unit_tl[1]);
+      window->draw(line_down);
+    }
+
+    for(int x = nearest_unit_tl[1]; x <= nearest_unit_br[1];x = x + CLIENT_UNIT_LENGTH){
+      // draw line down from current x
+      sf::RectangleShape line_down(sf::Vector2f((nearest_unit_br[0] - nearest_unit_tl[0]),1));
+      line_down.setPosition(nearest_unit_tl[0],x);
+      window->draw(line_down);
+    }
+
+
+    // for(Vec2Int i = nearest_unit_tl; (i[0] <= nearest_unit_br[0]) && (i[1] <= nearest_unit_br[1]);i = i + CLIENT_UNIT_LENGTH){
+    //   // draw line down from current x
+    //   std::cout << i << '\n';
+    //   sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
+    //   line_down.setPosition(i[0],nearest_unit_tl[1]);
+    //   window->draw(line_down);
+
+    //   // draw line right from current y
+    //   sf::RectangleShape line_right(sf::Vector2f((nearest_unit_br[0] - nearest_unit_tl[0]),1));
+    //   line_right.setPosition(nearest_unit_tl[0],i[1]);
+    //   window->draw(line_right);
+    // }
+
     state.draw(window);
+
     window->display();
     
     // update state
@@ -159,6 +203,7 @@ void Client::spin(){
       our_state->view_scale * CLIENT_INIT_VISIBLE_UNITS * CLIENT_UNIT_LENGTH);
     window->setView(view);
 
+    
     Logging::LOG(LOG_LEVEL::DEBUG,"Updated state:");
     Logging::LOG(LOG_LEVEL::DEBUG,state);
 

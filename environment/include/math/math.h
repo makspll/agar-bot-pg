@@ -17,6 +17,17 @@ class Vector : ISerializable{
         }
     }
 
+    template <class O>
+    explicit operator Vector<O, L>() {
+        O* vs = new O[L];
+
+        for(int i = 0; i < L; i++){
+            vs[i] = (O)vals[i];
+        }
+
+        return Vector<O, L>(vs);
+    }
+
     Vector(T x, T y){
         vals = new T[L];
         vals[0] = x;
