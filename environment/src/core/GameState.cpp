@@ -24,7 +24,8 @@ int GameState::from(char * buffer, int ignore_pid){
 
     for(int i = 0; i < player_count; i++){
         int bytes_read;
-        
+    
+
         // if player count changed, data past the last player count 
         // is changed, so cannot ignore it
         if (i < prev_player_count && players[i].pid == ignore_pid) {
@@ -33,6 +34,13 @@ int GameState::from(char * buffer, int ignore_pid){
         }
         else
             bytes_read = players[i].deserialize(buffer);
+
+        // this player is new, need to initialize it properly
+        // can only do it after we deserialize and read pid
+        if (i >= prev_player_count){
+            players[i] = PlayerState(players[i].pid);
+            players[i].deserialize(buffer);
+        }
 
         buffer += bytes_read;
         bytes_total += bytes_read;
@@ -43,8 +51,7 @@ int GameState::from(char * buffer, int ignore_pid){
 }
 
 void GameState::add_player(int pid){
-    players[player_count] = PlayerState();
-    players[player_count].pid = pid;
+    players[player_count] = PlayerState(pid);
 
     player_count++;
 }

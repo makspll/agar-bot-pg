@@ -10,7 +10,11 @@
 struct GameState : IDrawable, IPrintable{
 
 
-
+    GameState(){
+        for(int i =0; i < MAX_PLAYERS;i++){
+            players[i].pid = -1;
+        }
+    }
     //TODO COPY AND ASSIGNMENT CONSTRUCTORS
 
     int player_count = 0;

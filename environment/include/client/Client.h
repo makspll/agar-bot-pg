@@ -19,8 +19,8 @@ class Client{
     int socket_in_fd;
     char own_pid = -1;
 
-    Simulator simulator;
     GameState state;
+    Simulator simulator = Simulator(state);
 };
 
 #endif //CLIENT_H

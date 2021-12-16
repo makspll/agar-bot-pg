@@ -121,7 +121,6 @@ void Client::spin(){
     GameInput input;
 
     auto mouse_pos = window->mapPixelToCoords(sf::Mouse::getPosition(*window));
-    // std::cout << mouse_pos.x <<','<< mouse_pos.y << '(' << mouse_pos.x / CLIENT_UNIT_LENGTH << ',' << mouse_pos.y / CLIENT_UNIT_LENGTH <<  '\n';
 
     input.mouse_pos[0] = mouse_pos.x;
     input.mouse_pos[1] = mouse_pos.y;
@@ -158,39 +157,22 @@ void Client::spin(){
     nearest_unit_tl[1] = std::max(nearest_unit_tl[1],-(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
     nearest_unit_br[0] = std::min(nearest_unit_br[0],(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
     nearest_unit_br[1] = std::min(nearest_unit_br[1],(ARENA_HALF_WIDTH_UNITS) * (CLIENT_UNIT_LENGTH));
-    std::cout << nearest_unit_tl << nearest_unit_br << '\n';
 
     for(int y = nearest_unit_tl[1]; y <= nearest_unit_br[1];y += CLIENT_UNIT_LENGTH){
       // draw line down from current x
-      std::cout << y << ',';
       sf::RectangleShape line_down(sf::Vector2f((nearest_unit_br[0] - nearest_unit_tl[0]),1));
       line_down.setPosition(nearest_unit_tl[0],y);
       window->draw(line_down);
     }
-      std::cout << '\n';
 
     for(int x = nearest_unit_tl[0]; x <= nearest_unit_br[0];x = x + CLIENT_UNIT_LENGTH){
       // draw line down from current x
-      std::cout << x << ',';
       sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
       line_down.setPosition(x,nearest_unit_tl[1]);
       window->draw(line_down);
     }
-      std::cout << '\n';
 
 
-    // for(Vec2Int i = nearest_unit_tl; (i[0] <= nearest_unit_br[0]) && (i[1] <= nearest_unit_br[1]);i = i + CLIENT_UNIT_LENGTH){
-    //   // draw line down from current x
-    //   std::cout << i << '\n';
-    //   sf::RectangleShape line_down(sf::Vector2f(1,(nearest_unit_br[1] - nearest_unit_tl[1])));
-    //   line_down.setPosition(i[0],nearest_unit_tl[1]);
-    //   window->draw(line_down);
-
-    //   // draw line right from current y
-    //   sf::RectangleShape line_right(sf::Vector2f((nearest_unit_br[0] - nearest_unit_tl[0]),1));
-    //   line_right.setPosition(nearest_unit_tl[0],i[1]);
-    //   window->draw(line_right);
-    // }
 
     state.draw(window);
 

@@ -9,12 +9,18 @@
 #include "core/macros.h"
 
 struct PlayerState : ISerializable, IDrawable, IPrintable{
+    PlayerState(){}
 
-    PlayerState(){
+    PlayerState(int id) : pid(id){
         parts[0].pos = pos;
-        parts[0].mass = INITIAL_MASS;
         part_count = 1;
+
+        for(int i = 0 ;i < MAX_BLOBS; i++){
+            parts[i].id.entity = pid;
+            parts[i].id.sub_entity = i;
+        }
     }
+
 
     int serialize(char * buffer);
     int deserialize(char * buffer);

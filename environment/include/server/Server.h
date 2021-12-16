@@ -13,9 +13,9 @@ class Server{
 
         void Spin();
     
-        Simulator simulator;
         Player players[MAX_PLAYERS];
         GameState state;
+        Simulator simulator = Simulator(state);
         int socket_in_fd;
 };
 
