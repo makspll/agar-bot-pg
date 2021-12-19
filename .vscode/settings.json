@@ -59,7 +59,25 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "any": "cpp",
+        "condition_variable": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "mutex": "cpp"
     },
-    "cmake.sourceDirectory": "${workspaceFolder}/environment"
+    "cmake.sourceDirectory": "${workspaceFolder}/environment",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "cmake.debugConfig": {
+        "args": [
+            "--server",
+            "--log_level",
+            "0"
+        ]
+    },
+    "cmake.buildToolArgs": [
+        "--warn-undefined-variables"
+    ],
+    "cmake.buildDirectory": "${workspaceFolder}/environment/build"
+
 }

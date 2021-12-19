@@ -2,7 +2,6 @@
 #define CLIENT_H
 #include <SFML/Graphics.hpp>
 #include <netinet/in.h>
-#include "core/Simulator.h"
 #include "core/GameState.h"
 
 class Client{
@@ -20,7 +19,6 @@ class Client{
     char own_pid = -1;
 
     GameState state;
-    Simulator simulator = Simulator(state);
 };
 
 #endif //CLIENT_H

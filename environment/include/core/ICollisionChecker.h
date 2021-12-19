@@ -8,9 +8,11 @@ class ICollisionChecker{
     public:
 
     virtual void insert(ICollidable &c) = 0;
+    virtual void remove(ICollidable &c) = 0;
     virtual void rebuild() = 0;
 
     virtual std::vector<Hit> hits() = 0;
+    virtual ~ICollisionChecker(){};
 };
 
 

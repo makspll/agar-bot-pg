@@ -6,9 +6,10 @@
 class ACollidable : public ICollidable{
 
     public:
-
     ACollidable(unsigned int entity_id, unsigned int sub_entity_id, float radius, Vec2 pos)
      : id(entity_id,sub_entity_id),radius(radius), pos(pos) {}
+
+    virtual ~ACollidable(){}
 
     ID& get_ID(){return id;};
     Vec2& get_pos(){return pos;};

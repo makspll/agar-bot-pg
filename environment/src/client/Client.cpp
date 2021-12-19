@@ -74,6 +74,8 @@ Client::Client(int port, std::string ip){
 
   spin();
 
+  delete window;
+
 }
 
 void Client::spin(){
@@ -102,15 +104,23 @@ void Client::spin(){
           }
       } else {
         // set state to most recent
-        state.from(buffer + SERVER_HEADER_LEN, own_pid);
+        // std::cout << bytes_received <<  " BUFFER IN >> \n";
+        // for(int i = 0; i < bytes_received;i++){
+        //   std::cout << (int)buffer[i] << ',';
+        // }
+        // std::cout << '\n';
+        state.from(buffer + SERVER_HEADER_LEN);
+
         received_first_state = true;
 
-        Logging::LOG(LOG_LEVEL::DEBUG,"Received first state:");
+        Logging::LOG(LOG_LEVEL::DEBUG,"Received Game Input:");
         Logging::LOG(LOG_LEVEL::DEBUG,state);
+      
+
       }
 
     } while (!received_first_state);
-
+    
 
     // draw state
     struct timespec tick_start_time;
@@ -129,15 +139,18 @@ void Client::spin(){
     { 
       if (event.type == sf::Event::Closed)
           window->close();
-
+      if(event.type == sf::Event::KeyPressed){
+        if(event.key.code == sf::Keyboard::Escape){
+          window->close();
+        }
+      }
     }
-    
     state.set_input(own_pid,input);
     
     // send own state to server
-    buffer[0] = (char)ClientPacket::GAME_STATE;
+    buffer[0] = (char)ClientPacket::INPUT;
     buffer[1] = (char)own_pid;
-    int bytes_written = state.get_player_state(own_pid)->serialize(buffer + CLIENT_HEADER_LEN);
+    int bytes_written = input.serialize(buffer + CLIENT_HEADER_LEN);
     if(sendto(socket_in_fd, buffer, bytes_written + CLIENT_HEADER_LEN,0,(sockaddr*)&server_address,server_add_len) == -1){
       // error
       perror("sending state to server failed.");
@@ -179,7 +192,7 @@ void Client::spin(){
     window->display();
     
     // update state
-    simulator.update(state,TICK_CLIENT_SECONDS);
+    state.update(TICK_CLIENT_SECONDS);
 
     our_state = state.get_player_state(own_pid);
 
@@ -190,8 +203,8 @@ void Client::spin(){
     window->setView(view);
 
     
-    Logging::LOG(LOG_LEVEL::DEBUG,"Updated state:");
-    Logging::LOG(LOG_LEVEL::DEBUG,state);
+    // Logging::LOG(LOG_LEVEL::DEBUG,"Updated state:");
+    // Logging::LOG(LOG_LEVEL::DEBUG,state);
 
     // wait for next tick/frame
 

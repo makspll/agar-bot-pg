@@ -4,14 +4,13 @@
 #include <math.h>
 #include "core/ISerializable.h"
 #include <cstring>
+#include "core/macros.h"
 
 template <class T, int L>
 class Vector : ISerializable{
     public:
 
     Vector(){
-        vals = new T[L];
-        
         for(int i = 0; i < L; i ++){
             vals[i] = 0;
         }
@@ -19,7 +18,7 @@ class Vector : ISerializable{
 
     template <class O>
     explicit operator Vector<O, L>() {
-        O* vs = new O[L];
+        O vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = (O)vals[i];
@@ -29,35 +28,23 @@ class Vector : ISerializable{
     }
 
     Vector(T x, T y){
-        vals = new T[L];
         vals[0] = x;
         vals[1] = y;
     }
 
     Vector(T x, T y, T z){
-        vals = new T[L];
         vals[0] = x;
         vals[1] = y;
         vals[2] = z;
     }
 
-    Vector(T* vs){
-        vals = new T[L];
-        vals = vs;
-    }
-    
-    Vector(const Vector& o){
-        vals = new T[L];
+    Vector(T vs[]){
         for(int i = 0; i < L; i++){
-            vals[i] = o[i];
+            vals[i] = vs[i];
         }
     }
-    
-    void swap(Vector& o ) {
-        std::swap(vals, o.vals);
-    }
 
-    int serialize(char * buffer){
+    int serialize(char * buffer) const{
         std::memcpy(buffer,vals,sizeof(T) * L);
         return sizeof(T) * L;
     }
@@ -68,11 +55,7 @@ class Vector : ISerializable{
     }
 
     float sq_norm(){
-        float out = 0;
-        for(int i = 0; i < L; i++){
-            out += vals[i] *vals[i];
-        }
-        return out;
+        return this->dot(*this);
     }
     float norm(){
         return sqrt(sq_norm());
@@ -102,13 +85,7 @@ class Vector : ISerializable{
         }
         return dot;
     }
-    
 
-    Vector& operator=(const Vector& o){
-        Vector tmp(o);
-        swap(tmp);
-        return *this;
-    }
 
     uint8_t size(){
         return L;
@@ -117,8 +94,16 @@ class Vector : ISerializable{
     const T& operator [] (uint8_t i) const { return vals[i];}
     T& operator [] (uint8_t i) { return vals[i]; }
 
+    bool operator==(const Vector& o) const { 
+        for(int i =0; i < L;i++){
+            if(!APPROX_EQ(vals[i],o[i]))
+                return false;
+        } 
+        return true;
+    }
+
     friend Vector operator * (const T &r, const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = o[i] * r;
@@ -131,7 +116,7 @@ class Vector : ISerializable{
     }
 
     friend Vector operator * (const Vector<T,L> r, const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = o[i] * r[i];
@@ -141,7 +126,7 @@ class Vector : ISerializable{
 
 
     friend Vector operator / (const T &r, const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = r / o[i];
@@ -150,15 +135,23 @@ class Vector : ISerializable{
     }
 
     friend Vector operator / (const Vector<T,L> o, const T &r) {
-        return o * (1/r);
-    }
+        T vs[L];
+
+        for(int i = 0; i < L; i++){
+            vs[i] = o[i] / r;
+        }
+        return Vector(vs);    }
 
     friend Vector operator / (const Vector<T,L> r, const Vector<T,L> o) {
-        return r * (1/o);
-    }
+        T vs[L];
+
+        for(int i = 0; i < L; i++){
+            vs[i] = r[i] / o[i];
+        }
+        return Vector(vs);     }
 
     friend Vector operator + (const T &r, const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = o[i] + r;
@@ -171,7 +164,7 @@ class Vector : ISerializable{
     }
 
     friend Vector operator + (const Vector<T,L> r, const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = o[i] + r[i];
@@ -180,7 +173,7 @@ class Vector : ISerializable{
     }
 
     friend Vector operator - (const Vector<T,L> o) {
-        T* vs = new T[L];
+        T vs[L];
 
         for(int i = 0; i < L; i++){
             vs[i] = -o[i];
@@ -208,14 +201,7 @@ class Vector : ISerializable{
         
         return s;
     }
-
-    ~Vector(){
-        delete[] vals;
-    }
-
-
-
-    T* vals;
+    T vals[L];
 };
 
 using Vec2 = Vector<float,2>;

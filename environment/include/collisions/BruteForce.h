@@ -3,14 +3,21 @@
 #include "core/ICollidable.h"
 #include "core/ICollisionChecker.h"
 #include <vector>
+#include <algorithm>
 
 class BruteForce : public ICollisionChecker{
 
     public:
     
-
+    ~BruteForce(){
+        objects.clear();
+    };
     void insert(ICollidable &c){
         objects.push_back(&c);
+    };
+
+    void remove(ICollidable &c){
+        objects.erase(std::find(objects.begin(), objects.end(),&c));
     };
 
     void rebuild(){

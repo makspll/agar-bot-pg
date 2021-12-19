@@ -3,7 +3,7 @@
 
 class ISerializable{
     public:
-    virtual int serialize(char * buffer) = 0;
+    virtual int serialize(char * buffer) const = 0;
     virtual int deserialize(char * buffer) = 0;
 };
 

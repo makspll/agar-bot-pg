@@ -1,7 +1,7 @@
 #ifndef MACROS_H
 #define MACROS_H 
 
-#define BUFLEN 512
+#define BUFLEN 256
 #define CLIENT_HEADER_LEN 2
 #define SERVER_HEADER_LEN 1
 #define MAX_PLAYERS 8
@@ -16,5 +16,12 @@
 #define MAX_BLOBS 16
 #define INITIAL_MASS 10
 #define INITIAL_SPEED_UNITS_PER_SECOND 1
+#define MAX_FOOD_PELLETS 10
+#define MAX_FOOD_MASS 5
+#define FOOD_PROB_PER_SECOND 1
 
+
+#define EPS 1e-6
+#define ABS(N) ((N<0)?(-N):(N))
+#define APPROX_EQ(x,y) (ABS(x - y) < EPS)
 #endif //MACROS_H

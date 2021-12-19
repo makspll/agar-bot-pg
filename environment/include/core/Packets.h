@@ -6,7 +6,6 @@ enum class ClientPacket : unsigned char
     JOIN,
     LEAVE,
     INPUT,
-    GAME_STATE,
 };
 
 enum class ServerPacket : unsigned char

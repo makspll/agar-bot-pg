@@ -4,7 +4,7 @@
 
 class IDrawable {
 
-    virtual void draw(sf::RenderWindow * rw) = 0;
+    virtual void draw(sf::RenderWindow * rw) const = 0;
 
 };
 

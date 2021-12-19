@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cstring>
 
-int GameInput::serialize(char * buffer){
+int GameInput::serialize(char * buffer) const{
     return mouse_pos.serialize(buffer);
 }
 

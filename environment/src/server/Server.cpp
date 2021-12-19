@@ -78,7 +78,7 @@ void Server::Spin(){
             char result = (char)ServerPacket::RESULT_FAIL;
             char slot = -1;
             // find empty slot
-            for(int i = 0; i < MAX_PLAYERS; i++){
+            for(int i = ID::get_first_idx(EntityType::PLAYER_BLOB); i < MAX_PLAYERS + ID::get_first_idx(EntityType::PLAYER_BLOB); i++){
                 if(players[i].address == 0){
                   result = (char)ServerPacket::RESULT_SUCCESS;
                   slot = i;
@@ -122,20 +122,13 @@ void Server::Spin(){
             state.set_input(pid,a);
           }
           break;
-          case (char)ClientPacket::GAME_STATE:
-          {
-            players[pid].time_without_contact = -TICK_SECONDS;
-            PlayerState* pgs = state.get_player_state(pid);
-            pgs->deserialize(buffer + CLIENT_HEADER_LEN);
-
-          }
-          break;
         }
       }
     }
 
     // update game state
-    simulator.update(state, TICK_SECONDS);
+
+    state.update(TICK_SECONDS);
 
     struct sockaddr_in client_address;
     client_address.sin_family = AF_INET;
@@ -145,10 +138,19 @@ void Server::Spin(){
     Logging::LOG(LOG_LEVEL::DEBUG,"Server State: ");
     Logging::LOG(LOG_LEVEL::DEBUG,state);
 
+
+
     for(int i = 0; i < MAX_PLAYERS; i++){
       if(players[i].address != 0){
         buffer[0] = (char)ServerPacket::GAME_STATE;
         int bytes_written = state.to(buffer+SERVER_HEADER_LEN ,i);
+
+        // std::cout << bytes_written + 1  << " BUFFER OUT >> \n";
+        // for(int i = 0; i < bytes_written + 1;i++){
+        //   std::cout << (int)buffer[i] << ',';
+        // }
+        // std::cout << '\n';
+
         client_address.sin_port = players[i].port;
         client_address.sin_addr.s_addr = players[i].address;
         if ((sendto(socket_in_fd,buffer,bytes_written + SERVER_HEADER_LEN ,flags, (sockaddr*)&client_address,client_add_len)) == -1){

@@ -3,7 +3,6 @@
 #include "core/Player.h"
 #include "core/macros.h"
 #include "core/GameState.h"
-#include "core/Simulator.h"
 
 class Server{
     public:
@@ -14,8 +13,7 @@ class Server{
         void Spin();
     
         Player players[MAX_PLAYERS];
-        GameState state;
-        Simulator simulator = Simulator(state);
+        GameState state = GameState(true);
         int socket_in_fd;
 };
 
