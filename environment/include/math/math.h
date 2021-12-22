@@ -210,6 +210,11 @@ using Vec3 = Vector<float,3>;
 using Vec3Int = Vector<int,3>;
 
 
-
+template <typename A, typename B>
+inline int increment(A& a, B& b, int inc){
+    a+=inc;
+    b+=inc;
+    return inc;
+}
 
 #endif // MATH_H

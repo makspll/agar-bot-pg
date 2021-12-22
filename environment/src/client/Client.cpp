@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <fcntl.h> 
 #include "core/Logging.h"
+#include "core/Timer.h"
 
 Client::Client(int port, std::string ip){
 
@@ -91,11 +92,18 @@ void Client::spin(){
 
   bool received_first_state = false;
 
+  Timer render_loop;
+  Timer lag_timer;
+  unsigned int curr_sequence_num = next_sequence_number++;
+
   while (window->isOpen())
   { // main loop
 
+    render_loop.start();
+
     // check available state packets
     do{
+      lag_timer.start();
       int bytes_received = recvfrom(socket_in_fd,buffer,BUFLEN,MSG_DONTWAIT,(sockaddr*)&server_address,&server_add_len); 
       if (bytes_received == -1){
           if (errno != EAGAIN && errno != EWOULDBLOCK){
@@ -103,28 +111,35 @@ void Client::spin(){
             perror("Error in retrieving state");
           }
       } else {
-        // set state to most recent
-        // std::cout << bytes_received <<  " BUFFER IN >> \n";
-        // for(int i = 0; i < bytes_received;i++){
-        //   std::cout << (int)buffer[i] << ',';
-        // }
-        // std::cout << '\n';
+        lag_ms = lag_timer.read_ns() / 1e6;
+        memcpy(&last_received_sequence_number,buffer + 1,sizeof(unsigned int));
         state.from(buffer + SERVER_HEADER_LEN);
 
-        received_first_state = true;
+        received_buffer.enqueue(state,last_received_sequence_number);
+        // reconcille received state
+        // replay inputs from last received sequence number
+        if(sent_buffer.size() > 0){
+          std::cout << "LAST: " << last_received_sequence_number << '\n';
+          sent_buffer.erase_before(last_received_sequence_number + 1);
+          for(auto it = sent_buffer.iterator(); it != sent_buffer.end();it++){
+            std::cout << "APPLYING: " << it->seq_number << '\n';
+            state.set_input(own_pid,it->msg);
+            state.update_player(TICK_SECONDS,own_pid);
+          }
+        }
 
-        Logging::LOG(LOG_LEVEL::DEBUG,"Received Game Input:");
-        Logging::LOG(LOG_LEVEL::DEBUG,state);
+        received_first_state = true;
+        render_loop.start(); // restart render loop, i.e. sync time with  server
+
+
+        // Logging::LOG(LOG_LEVEL::DEBUG,"Received Game Input:");
+        // Logging::LOG(LOG_LEVEL::DEBUG,state);
       
 
       }
 
     } while (!received_first_state);
-    
 
-    // draw state
-    struct timespec tick_start_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tick_start_time);
 
     // update our input
     sf::Event event;
@@ -147,9 +162,13 @@ void Client::spin(){
     }
     state.set_input(own_pid,input);
     
-    // send own state to server
+    // send input to server
+    // keep track of history for reconciliation with received input
+    sent_buffer.enqueue(input,curr_sequence_num);
     buffer[0] = (char)ClientPacket::INPUT;
     buffer[1] = (char)own_pid;
+
+    memcpy(buffer + 2, &curr_sequence_num,sizeof(unsigned int));
     int bytes_written = input.serialize(buffer + CLIENT_HEADER_LEN);
     if(sendto(socket_in_fd, buffer, bytes_written + CLIENT_HEADER_LEN,0,(sockaddr*)&server_address,server_add_len) == -1){
       // error
@@ -189,10 +208,23 @@ void Client::spin(){
 
     state.draw(window);
 
+
     window->display();
-    
-    // update state
-    state.update(TICK_CLIENT_SECONDS);
+
+    // update state, 
+    state.update_player(TICK_SECONDS, own_pid);
+
+    // interpolate using the buffer up to its capacity at most from the first stored snapshot
+    unsigned int ticks_since_sync = curr_sequence_num - last_received_sequence_number - 1; // we need to be one ahead for interpolation
+    if(received_buffer.size() >= 2 && ticks_since_sync > 0){
+      float t = ticks_since_sync / INTERPOLATION_TICKS;
+      t = std::min(t,1.0f);
+
+      GameState prev_received_state = (++received_buffer.iterator())->msg;
+      GameState prev_prev_received_state = (received_buffer.iterator())->msg;
+      
+      state.interpolate_all_but(own_pid,&prev_prev_received_state,&prev_received_state,t);
+    }
 
     our_state = state.get_player_state(own_pid);
 
@@ -202,23 +234,18 @@ void Client::spin(){
       our_state->view_scale * CLIENT_INIT_VISIBLE_UNITS * CLIENT_UNIT_LENGTH);
     window->setView(view);
 
-    
+
     // Logging::LOG(LOG_LEVEL::DEBUG,"Updated state:");
     // Logging::LOG(LOG_LEVEL::DEBUG,state);
 
+
     // wait for next tick/frame
-
-    struct timespec tick_end_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tick_end_time);
-
-    long diff_s = (tick_end_time.tv_sec - tick_start_time.tv_sec) 
-      + (tick_end_time.tv_nsec - tick_start_time.tv_nsec) / 1e9;
-
-    if (diff_s < TICK_CLIENT_SECONDS){
-      usleep((TICK_CLIENT_SECONDS - diff_s) / 1e-6);
+    long double wait_time_s = TICK_SECONDS - (render_loop.read_ns() / 1e9);
+    if (wait_time_s > 0){
+      usleep(wait_time_s * 1e6);
     }
 
-
+    curr_sequence_num++;
   }
 
   // window closed

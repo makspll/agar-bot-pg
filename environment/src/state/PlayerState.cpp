@@ -1,40 +1,36 @@
 #include "state/PlayerState.h"
+#include "math/math.h"
 
 int PlayerState::serialize(char * buffer) const{
+    int bytes = 0;
+
     buffer[0] = pid;
     buffer[1] = view_scale;
     buffer[2] = parts.size();
-    int bytes = 3;
-    buffer += bytes;
-    
-    int written = pos.serialize(buffer);
-    buffer += written;
-    bytes += written;
+    increment(buffer, bytes, 3);
+    increment(buffer, bytes, pos.serialize(buffer));
+
+    increment(buffer,bytes,curr_input.serialize(buffer));
 
     for(const auto&x : parts){
         buffer[0] = x.first;
-        buffer++;
-        bytes++;
-
-        written = x.second.serialize(buffer);
-        buffer += written;
-        bytes += written;
+        increment(buffer,bytes,1);
+        increment(buffer,bytes, x.second.serialize(buffer));
     }
 
     return bytes;
 }
 
 int PlayerState::deserialize(char * buffer){
+    int bytes = 0;
     pid = buffer[0];
     view_scale = buffer[1];
     int part_count = buffer[2];
-    int bytes = 3;
-    buffer += bytes;
 
-    int read = pos.deserialize(buffer);
-    buffer += read;
-    bytes += read;
-    
+    increment(buffer,bytes, 3);
+    increment(buffer,bytes, pos.deserialize(buffer));
+    increment(buffer,bytes,curr_input.deserialize(buffer));
+
     bool parts_removed = false;
     if(part_count < parts.size()){
         parts_removed = true;
@@ -43,8 +39,8 @@ int PlayerState::deserialize(char * buffer){
 
     for(int i = 0; i < part_count; i++){
         int pid_r = buffer[0];
-        buffer++;
-        bytes++;
+        increment(buffer,bytes,1);
+
         bool new_part = !parts.count(pid_r);
 
         if(new_part)
@@ -53,9 +49,7 @@ int PlayerState::deserialize(char * buffer){
             temp_ids.insert(pid_r);
         }
 
-        read = get_blob_state(pid_r)->deserialize(buffer);
-        buffer += read;
-        bytes += read;
+        increment(buffer,bytes,get_blob_state(pid_r)->deserialize(buffer));
     }
 
     // remove removed parts

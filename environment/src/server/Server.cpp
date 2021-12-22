@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "core/Packets.h"
 #include "core/Logging.h"
+#include "core/Timer.h"
 
 Server::Server(int port){
 
@@ -47,129 +48,155 @@ void Server::Spin(){
 
 
   char buffer[BUFLEN];
-  int flags = 0;
   struct sockaddr_in from;
   int from_size = sizeof(from);
   
   // main loop
+  Timer tick_loop;
+  Timer sync_loop;
+
+  tick_loop.start();
+  sync_loop.start();
+
+
   while ( true ){
-    struct timespec tick_start_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tick_start_time);
+    
+    auto elapsed_tick_ns = tick_loop.read_ns();
+    auto elapsed_sync_ns = sync_loop.read_ns();
 
-    // packet reading
-    while( true ){
+    // TICK
+    if(elapsed_tick_ns >= TICK_NS){
+      Logging::LOG(LOG_LEVEL::DEBUG, "Ticking simulation.");
 
-      int bytes_received = recvfrom(socket_in_fd,buffer,BUFLEN,flags,(sockaddr*)&from,(socklen_t*)&from_size); 
-
-      if (bytes_received == -1){
-          if (errno == EAGAIN || errno == EWOULDBLOCK){
-            break; // no more packets
-          }
-      } else {
-        // read current packet 
-        if (bytes_received < 1){
-          continue; // ignore bad packets
-        }  
-
-        char pid = buffer[1];
-        switch (buffer[0]){
-          case (char)ClientPacket::JOIN:
-          { 
-            char result = (char)ServerPacket::RESULT_FAIL;
-            char slot = -1;
-            // find empty slot
-            for(int i = ID::get_first_idx(EntityType::PLAYER_BLOB); i < MAX_PLAYERS + ID::get_first_idx(EntityType::PLAYER_BLOB); i++){
-                if(players[i].address == 0){
-                  result = (char)ServerPacket::RESULT_SUCCESS;
-                  slot = i;
-                  break;
-              }
+      while( true ){
+        int bytes_received = recvfrom(socket_in_fd,buffer,BUFLEN,0,(sockaddr*)&from,(socklen_t*)&from_size); 
+        if (bytes_received == -1){
+            if (errno == EAGAIN || errno == EWOULDBLOCK){
+              break; // no more packets
             }
-            buffer[0] = result;
-            buffer[1] = slot;
-            // send result, and track player
-            if ((sendto(socket_in_fd,buffer,2,flags, (sockaddr*)&from,from_size)) != -1){
-                if(slot != -1){
-                  std::cout << "Player joined at slot: "<< (int)slot <<'\n';
-                  players[slot].address = from.sin_addr.s_addr;
-                  players[slot].port = from.sin_port;
-                  players[slot].time_without_contact = -TICK_SECONDS;
-                } else {
-                  std::cout << "Player attempted to join full server" <<'\n';
+        } else {
+          // read current packet 
+          if (bytes_received < 1){
+            continue; // ignore bad packets
+          }  
+
+          char pid = buffer[1];
+
+          switch (buffer[0]){
+            case (char)ClientPacket::JOIN:
+            { 
+              char result = (char)ServerPacket::RESULT_FAIL;
+              char slot = -1;
+              // find empty slot
+              for(int i = ID::get_first_idx(EntityType::PLAYER_BLOB); i < MAX_PLAYERS + ID::get_first_idx(EntityType::PLAYER_BLOB); i++){
+                  if(players[i].address == 0){
+                    result = (char)ServerPacket::RESULT_SUCCESS;
+                    slot = i;
+                    break;
                 }
+              }
+              buffer[0] = result;
+              buffer[1] = slot;
+              // send result, and track player
+              if ((sendto(socket_in_fd,buffer,2,0, (sockaddr*)&from,from_size)) != -1){
+                  if(slot != -1){
+                    std::cout << "Player joined at slot: "<< (int)slot <<'\n';
+                    players[slot].address = from.sin_addr.s_addr;
+                    players[slot].port = from.sin_port;
+                    players[slot].time_without_contact = -TICK_SECONDS;
+                  } else {
+                    std::cout << "Player attempted to join full server" <<'\n';
+                  }
+              }
+
+              // register player to state
+              state.add_player(slot);            
             }
+            break;
+            case (char)ClientPacket::LEAVE:
+            {
+              std::cout << "Player left from slot: " << (int)pid << '\n';
+              players[pid].time_without_contact = -TICK_SECONDS;
+              players[pid].address = 0;
+              players[pid].port = 0;
+              received_buffers[pid] = PacketBuffer<GameInput>(5);
 
-            // register player to state
-            state.add_player(slot);            
+              // unregister player from state
+              state.remove_player(pid);            
+            }
+            break;
+            case (char)ClientPacket::INPUT:
+            {
+              players[pid].time_without_contact = -TICK_SECONDS;
+              unsigned int seq_number;
+              memcpy(&seq_number,buffer + 2,sizeof(unsigned int));
+              auto a = GameInput();
+              a.deserialize(buffer + CLIENT_HEADER_LEN);
+              // each client may send multiple inputs per tick, we want to only process the most recent one
+              // client's are usually in the "future" since they sent the input, we dictate the "present"
+              received_buffers[pid].enqueue(a,seq_number);
+            }
+            break;
           }
-          break;
-          case (char)ClientPacket::LEAVE:
-          {
-            std::cout << "Player left from slot: " << (int)pid << '\n';
-            players[pid].time_without_contact = -TICK_SECONDS;
-            players[pid].address = 0;
-            players[pid].port = 0;
-
-            // unregister player from state
-            state.remove_player(pid);            
-          }
-          break;
-          case (char)ClientPacket::INPUT:
-          {
-            players[pid].time_without_contact = -TICK_SECONDS;
-            auto a = GameInput();
-            a.deserialize(buffer + CLIENT_HEADER_LEN);
-            state.set_input(pid,a);
-          }
-          break;
         }
       }
-    }
 
-    // update game state
+      /// update game state
 
-    state.update(TICK_SECONDS);
-
-    struct sockaddr_in client_address;
-    client_address.sin_family = AF_INET;
-    int client_add_len = sizeof(client_address);
-
-    // send game state to clients
-    Logging::LOG(LOG_LEVEL::DEBUG,"Server State: ");
-    Logging::LOG(LOG_LEVEL::DEBUG,state);
-
-
-
-    for(int i = 0; i < MAX_PLAYERS; i++){
-      if(players[i].address != 0){
-        buffer[0] = (char)ServerPacket::GAME_STATE;
-        int bytes_written = state.to(buffer+SERVER_HEADER_LEN ,i);
-
-        // std::cout << bytes_written + 1  << " BUFFER OUT >> \n";
-        // for(int i = 0; i < bytes_written + 1;i++){
-        //   std::cout << (int)buffer[i] << ',';
-        // }
-        // std::cout << '\n';
-
-        client_address.sin_port = players[i].port;
-        client_address.sin_addr.s_addr = players[i].address;
-        if ((sendto(socket_in_fd,buffer,bytes_written + SERVER_HEADER_LEN ,flags, (sockaddr*)&client_address,client_add_len)) == -1){
-          // error
-          perror("error sending state");
+      // first load all client's most recent inputs
+      // then update them
+      for(int i = 0; i < MAX_PLAYERS; i++){
+        if(players[i].address != 0 && received_buffers[i].size() > 0) {
+          players[i].last_processed_sequence_number = received_buffers[i].iterator()->seq_number;
+          auto a = received_buffers[i].pop();
+          state.set_input(i,a);
+          state.update_player(TICK_SECONDS,i);
         }
-
-        players[i].time_without_contact += TICK_SECONDS;
       }
+
+      // collision checks, food spawns etc
+      state.update_world(TICK_SECONDS);
+
+      tick_loop.start();
     }
 
-    // wait for next tick
-    struct timespec tick_end_time;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tick_end_time);
-    long diff_s = (tick_end_time.tv_sec - tick_start_time.tv_sec) 
-      + (tick_end_time.tv_nsec - tick_start_time.tv_nsec) / 1e9;
 
-    if (diff_s < TICK_SECONDS){
-      usleep((TICK_SECONDS - diff_s) / 1e-6);
+    // SYNC
+
+    if(elapsed_sync_ns >= STATE_SYNC_NS){
+      Logging::LOG(LOG_LEVEL::DEBUG, "Synchronising clients.\n");
+      
+      struct sockaddr_in client_address;
+      client_address.sin_family = AF_INET;
+      int client_add_len = sizeof(client_address);
+
+      for(int i = 0; i < MAX_PLAYERS; i++){
+        if(players[i].address != 0){
+          buffer[0] = (char)ServerPacket::GAME_STATE;
+          memcpy(buffer+1,&players[i].last_processed_sequence_number,sizeof(unsigned int));
+          int bytes_written = state.to(buffer+SERVER_HEADER_LEN ,i);
+
+          client_address.sin_port = players[i].port;
+          client_address.sin_addr.s_addr = players[i].address;
+          if ((sendto(socket_in_fd,buffer,bytes_written + SERVER_HEADER_LEN ,0, (sockaddr*)&client_address,client_add_len)) == -1){
+            // error
+            perror("error sending state");
+          }
+
+          players[i].time_without_contact += TICK_SECONDS;
+        }
+      }
+
+      sync_loop.start();
+    }
+
+    // wait for next coming tick
+    long double diff_tick_s = TICK_SECONDS  - (elapsed_tick_ns / 1e9);
+    long double diff_sync_s = STATE_SYNC_SECONDS - (elapsed_sync_ns / 1e9);
+    long double wait_time_s = std::min(diff_sync_s,diff_tick_s);
+
+    if (wait_time_s > 0){
+      usleep((wait_time_s) * 1e6);
     }
   }
   

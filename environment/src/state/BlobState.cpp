@@ -12,10 +12,8 @@ BlobState::BlobState(int pid, int sub_id):BlobState(){
 int BlobState::serialize(char * buffer) const{
     int bytes = 0;
     std::memcpy(buffer,&mass,sizeof(unsigned int));
-    buffer += sizeof(unsigned int);
-    bytes += sizeof(unsigned int);
-
-    bytes += pos.serialize(buffer);
+    increment(buffer,bytes, sizeof(unsigned int));
+    increment(buffer,bytes, pos.serialize(buffer));
     return bytes;
 }
 
@@ -23,11 +21,10 @@ int BlobState::deserialize(char * buffer){
     int bytes = 0;
     unsigned int tmass;
     std::memcpy(&tmass,buffer,sizeof(unsigned int));
+    increment(buffer,bytes,sizeof(unsigned int));
     set_mass(tmass);
-    buffer += sizeof(unsigned int);
-    bytes += sizeof(unsigned int);
+    increment(buffer,bytes,pos.deserialize(buffer));
 
-    bytes += pos.deserialize(buffer);
     return bytes;
 
 }

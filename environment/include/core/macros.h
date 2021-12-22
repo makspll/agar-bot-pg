@@ -2,11 +2,15 @@
 #define MACROS_H 
 
 #define BUFLEN 256
-#define CLIENT_HEADER_LEN 2
-#define SERVER_HEADER_LEN 1
+#define CLIENT_HEADER_LEN 6 // msg type, pid, seq number
+#define SERVER_HEADER_LEN 5 // msg type, seq number
 #define MAX_PLAYERS 8
-#define TICK_SECONDS 0.016
-#define TICK_CLIENT_SECONDS 0.016
+#define TICK_SECONDS 0.032 // each simulation tick period
+#define STATE_SYNC_SECONDS 0.05 // period between sync packets
+#define INTERPOLATION_TICKS (std::ceil(STATE_SYNC_SECONDS / TICK_SECONDS))
+#define TICK_NS (TICK_SECONDS * 1e9)
+#define STATE_SYNC_NS (STATE_SYNC_SECONDS * 1e9)
+
 #define CLIENT_TIMEOUT 10
 #define CLIENT_CONNECTION_RETRY_PERIOD 5
 

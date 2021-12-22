@@ -3,6 +3,8 @@
 #include "core/Player.h"
 #include "core/macros.h"
 #include "core/GameState.h"
+#include "core/PacketBuffer.h"
+
 
 class Server{
     public:
@@ -15,6 +17,7 @@ class Server{
         Player players[MAX_PLAYERS];
         GameState state = GameState(true);
         int socket_in_fd;
+        PacketBuffer<GameInput> received_buffers[MAX_PLAYERS];
 };
 
 #endif //SERVER_H

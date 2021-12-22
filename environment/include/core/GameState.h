@@ -18,15 +18,27 @@ struct GameState : IDrawable, IPrintable{
     GameState();
     ~GameState();
     GameState(bool is_server);
+    GameState(const GameState& other, bool full_copy = false);
 
-    //TODO COPY AND ASSIGNMENT CONSTRUCTORS
+    GameState& operator=(const GameState& other){
+        GameState tmp(other);
+        players.swap(tmp.players);
+        food_pellets.swap(tmp.food_pellets);
+        is_server = tmp.is_server;
+        collisionChecker = tmp.collisionChecker;
+        
+        return *this;
+    }
 
     std::map<int,PlayerState> players;
     std::map<int,FoodPelletState> food_pellets;
 
     int to(char * buffer, int player);
     int from(char * buffer, int ignore_pid = -9);
-    void update(float dt);
+
+    void update_player(float dt, int pid = -1);
+    void update_world(float dt);
+    void interpolate_all_but(int pid, GameState* a, GameState* b, float t);
 
     inline void add_player(int pid){
         pid += ID::get_first_idx(EntityType::PLAYER_BLOB);

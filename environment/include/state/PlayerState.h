@@ -24,16 +24,16 @@ struct PlayerState : ISerializable, IDrawable, IPrintable{
     int deserialize(char * buffer);
 
     void add_part(int part_id){
-        std::cout << "NEW _PART " << part_id << '\n';
         parts[part_id] = BlobState(pid,part_id);
     }
 
     void remove_part(int part_id){
-        std::cout << "REMOVED PART " << part_id << '\n';
         parts.erase(part_id);
     }
 
     BlobState* get_blob_state(int part_id) {
+        if(part_id >= parts.size())
+            throw std::out_of_range("Tried to request part: " + std::to_string(part_id) + ", with: " + std::to_string(parts.size()) + ", present.");
         return &parts.at(part_id);
     }
 
