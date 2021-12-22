@@ -56,7 +56,6 @@ class PacketBuffer{
             if(it->seq_number < seq_number){
                 it++;
             } else {
-                std::cout << "Erase: " << messages.begin()->seq_number << " to> " << it->seq_number << '\n';
                 messages.erase(messages.begin(),it);
                 return;
             }

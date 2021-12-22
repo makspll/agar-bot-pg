@@ -119,10 +119,8 @@ void Client::spin(){
         // reconcille received state
         // replay inputs from last received sequence number
         if(sent_buffer.size() > 0){
-          std::cout << "LAST: " << last_received_sequence_number << '\n';
           sent_buffer.erase_before(last_received_sequence_number + 1);
           for(auto it = sent_buffer.iterator(); it != sent_buffer.end();it++){
-            std::cout << "APPLYING: " << it->seq_number << '\n';
             state.set_input(own_pid,it->msg);
             state.update_player(TICK_SECONDS,own_pid);
           }
@@ -219,6 +217,7 @@ void Client::spin(){
     if(received_buffer.size() >= 2 && ticks_since_sync > 0){
       float t = ticks_since_sync / INTERPOLATION_TICKS;
       t = std::min(t,1.0f);
+      std::cout << "Player at: " << curr_sequence_num << ", Entities at: " << (float)((++received_buffer.iterator())->seq_number) + (t*(float)INTERPOLATION_TICKS) << '\n';
 
       GameState prev_received_state = (++received_buffer.iterator())->msg;
       GameState prev_prev_received_state = (received_buffer.iterator())->msg;
